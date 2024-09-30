@@ -306,8 +306,7 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist([Root.type])
 
-    @patch.object(datetime, "datetime", wraps=datetime.datetime)
-    def test_expired_timestamp_version_rollback(self, mock_time: Mock) -> None:
+    def test_expired_timestamp_version_rollback(self) -> None:
         """Verifies that local timestamp is used in rollback checks even if it is expired.
 
         The timestamp updates and rollback checks are performed
@@ -331,10 +330,11 @@ class TestRefresh(unittest.TestCase):
 
         self.sim.timestamp.version = 1
 
-        mock_time.now.return_value = datetime.datetime.now(
+        mock_time = datetime.datetime.now(
             timezone.utc
         ) + datetime.timedelta(days=18)
-        patcher = patch("datetime.datetime", mock_time)
+        patcher = patch("datetime.datetime.now",
+                        lambda *args, **kwargs: mock_time)
         # Check that a rollback protection is performed even if
         # local timestamp has expired
         with patcher, self.assertRaises(BadVersionNumberError):
@@ -342,8 +342,7 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_version_equals(Timestamp.type, 2)
 
-    @patch.object(datetime, "datetime", wraps=datetime.datetime)
-    def test_expired_timestamp_snapshot_rollback(self, mock_time: Mock) -> None:
+    def test_expired_timestamp_snapshot_rollback(self) -> None:
         """Verifies that rollback protection is done even if local timestamp has expired.
 
         The snapshot updates and rollback protection checks are performed
@@ -370,10 +369,11 @@ class TestRefresh(unittest.TestCase):
         self.sim.update_snapshot()
         self.sim.timestamp.expires = now + datetime.timedelta(days=21)
 
-        mock_time.now.return_value = datetime.datetime.now(
+        mock_time = datetime.datetime.now(
             timezone.utc
         ) + datetime.timedelta(days=18)
-        patcher = patch("datetime.datetime", mock_time)
+        patcher = patch("datetime.datetime.now",
+                        lambda *args, **kwargs: mock_time)
         # Assert that rollback protection is done even if
         # local timestamp has expired
         with patcher, self.assertRaises(BadVersionNumberError):
@@ -736,8 +736,7 @@ class TestRefresh(unittest.TestCase):
         expected_calls = [("root", 2), ("timestamp", None)]
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
 
-    @patch.object(datetime, "datetime", wraps=datetime.datetime)
-    def test_expired_metadata(self, mock_time: Mock) -> None:
+    def test_expired_metadata(self) -> None:
         """Verifies that expired local timestamp/snapshot can be used for
         updating from remote.
 
@@ -761,10 +760,10 @@ class TestRefresh(unittest.TestCase):
 
         # Mocking time so that local timestam has expired
         # but the new timestamp has not
-        mock_time.now.return_value = datetime.datetime.now(
+        mock_time = datetime.datetime.now(
             timezone.utc
         ) + datetime.timedelta(days=18)
-        with patch("datetime.datetime", mock_time):
+        with patch("datetime.datetime.now", lambda *args, **kwargs: mock_time):
             self._run_refresh()
 
         # Assert that the final version of timestamp/snapshot is version 2
